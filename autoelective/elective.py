@@ -164,7 +164,7 @@ class ElectiveClient(BaseClient):
             url=ElectiveURL.Supplement + "?netui_row=%s" % quote("electResultLisGrid;0"),
             params={
                 # "netui_row": "electResultLisGrid;0", # leave this field in url for duplicate key 'netui_row'
-                "netui_row": "electableListGrid;%s" % ( (page - 1) * 50 ),
+                "netui_row": "electableListGrid;%s" % ( (page - 1) * 20 ),
                 "conflictCourse": "",
             },
             headers=headers,
