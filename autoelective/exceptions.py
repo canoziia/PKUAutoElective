@@ -30,6 +30,7 @@ __all__ = [
                 "NotInOperationTimeError",
                 "CourseIndexError",
                 "CaptchaError",
+                "RecognizerError",
                 "NoAuthInfoError",
                 "SharedSessionError",
                 "NotAgreedToSelectionAgreement",
@@ -158,6 +159,9 @@ class CourseIndexError(SystemException):
 class CaptchaError(SystemException):
     code = 316
     desc = "验证码不正确。"
+
+class RecognizerError(SystemException):
+    pass
 
 class NoAuthInfoError(SystemException):
     code = 317

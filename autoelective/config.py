@@ -14,7 +14,8 @@ from .utils import Singleton
 from .const import DEFAULT_CONFIG_INI
 from .exceptions import UserInputException
 
-_reNamespacedSection = re.compile(r'^\s*(?P<ns>[^:]+?)\s*:\s*(?P<id>[^,]+?)\s*$')
+_reNamespacedSection = re.compile(
+    r'^\s*(?P<ns>[^:]+?)\s*:\s*(?P<id>[^,]+?)\s*$')
 _reCommaSep = re.compile(r'\s*,\s*')
 
 environ = Environ()
@@ -46,8 +47,9 @@ class BaseConfig(object):
     def getdict(self, section, options):
         assert isinstance(options, (list, tuple, set))
         d = dict(self._config.items(section))
-        if not all( k in d for k in options ):
-            raise UserInputException("Incomplete course in section %r, %s must all exist." % (section, options))
+        if not all(k in d for k in options):
+            raise UserInputException(
+                "Incomplete course in section %r, %s must all exist." % (section, options))
         return d
 
     def getlist(self, section, option, *args, **kwargs):
@@ -56,7 +58,7 @@ class BaseConfig(object):
 
     def ns_sections(self, ns):
         ns = ns.strip()
-        ns_sects = OrderedDict() # { id: str(section) }
+        ns_sects = OrderedDict()  # { id: str(section) }
         for s in self._config.sections():
             mat = _reNamespacedSection.match(s)
             if mat is None:
@@ -67,7 +69,8 @@ class BaseConfig(object):
             if id_ in ns_sects:
                 raise DuplicateSectionError("%s:%s" % (ns, id_))
             ns_sects[id_] = s
-        return [ (id_, s) for id_, s in ns_sects.items() ] # [ (id, str(section)) ]
+        # [ (id, str(section)) ]
+        return [(id_, s) for id_, s in ns_sects.items()]
 
 
 class AutoElectiveConfig(BaseConfig, metaclass=Singleton):
@@ -75,11 +78,11 @@ class AutoElectiveConfig(BaseConfig, metaclass=Singleton):
     def __init__(self):
         super().__init__(environ.config_ini or DEFAULT_CONFIG_INI)
 
-    ## Constraints
+    # Constraints
 
-    ALLOWED_IDENTIFY = ("bzx","bfx")
+    ALLOWED_IDENTIFY = ("bzx", "bfx")
 
-    ## Model
+    # Model
 
     # [user]
 
@@ -98,6 +101,32 @@ class AutoElectiveConfig(BaseConfig, metaclass=Singleton):
     @property
     def identity(self):
         return self.get("user", "identity").lower()
+
+    # mail
+
+    @property
+    def mail_host(self):
+        return self.get("mail", "host")
+
+    @property
+    def mail_port(self):
+        return self.getint("mail", "port")
+
+    @property
+    def mail_user(self):
+        return self.get("mail", "username")
+
+    @property
+    def mail_pass(self):
+        return self.get("mail", "password")
+
+    @property
+    def mail_sender(self):
+        return self.get("mail", "sender")
+
+    @property
+    def mail_receiver(self):
+        return self.get("mail", "receiver")
 
     # [client]
 
@@ -162,13 +191,14 @@ class AutoElectiveConfig(BaseConfig, metaclass=Singleton):
         cs = OrderedDict()  # { id: Course }
         rcs = {}
         for id_, s in self.ns_sections('course'):
-            d = self.getdict(s, ('name','class','school'))
+            d = self.getdict(s, ('name', 'class', 'school'))
             d.update(class_no=d.pop('class'))
             c = Course(**d)
             cs[id_] = c
             rid = rcs.get(c)
             if rid is not None:
-                raise UserInputException("Duplicated courses in sections 'course:%s' and 'course:%s'" % (rid, id_))
+                raise UserInputException(
+                    "Duplicated courses in sections 'course:%s' and 'course:%s'" % (rid, id_))
             rcs[c] = id_
         return cs
 
@@ -187,29 +217,33 @@ class AutoElectiveConfig(BaseConfig, metaclass=Singleton):
     @property
     def delays(self):
         ds = OrderedDict()  # { id: Delay }
-        cid_id = {} # { cid: id }
+        cid_id = {}  # { cid: id }
         for id_, s in self.ns_sections('delay'):
             cid = self.get(s, 'course')
             threshold = self.getint(s, 'threshold')
             if not threshold > 0:
-                raise UserInputException("Invalid threshold %d in 'delay:%s', threshold > 0 must be satisfied" % (threshold, id_))
+                raise UserInputException(
+                    "Invalid threshold %d in 'delay:%s', threshold > 0 must be satisfied" % (threshold, id_))
             id0 = cid_id.get(cid)
             if id0 is not None:
-                raise UserInputException("Duplicated delays of 'course:%s' in 'delay:%s' and 'delay:%s'" % (cid, id0, id_))
+                raise UserInputException(
+                    "Duplicated delays of 'course:%s' in 'delay:%s' and 'delay:%s'" % (cid, id0, id_))
             cid_id[cid] = id_
             ds[id_] = Delay(cid, threshold)
         return ds
 
-    ## Method
+    # Method
 
     def check_identify(self, identity):
         limited = self.__class__.ALLOWED_IDENTIFY
         if identity not in limited:
-            raise ValueError("unsupported identity %s for elective, identity must be in %s" % (identity, limited))
+            raise ValueError(
+                "unsupported identity %s for elective, identity must be in %s" % (identity, limited))
 
     def check_supply_cancel_page(self, page):
         if page <= 0:
-            raise ValueError("supply_cancel_page must be positive number, not %s" % page)
+            raise ValueError(
+                "supply_cancel_page must be positive number, not %s" % page)
 
     def get_user_subpath(self):
         if self.is_dual_degree:

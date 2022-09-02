@@ -3,14 +3,16 @@
 # filename: elective.py
 # modified: 2019-09-10
 
-import time
-import string
-import random
-from urllib.parse import quote
-from .client import BaseClient
+from .const import ElectiveURL
 from .hook import get_hooks, debug_dump_request, debug_print_request, check_status_code, with_etree,\
     check_elective_title, check_elective_tips
-from .const import ElectiveURL
+from .client import BaseClient
+from urllib.parse import quote
+import random
+import string
+import time
+from .config import AutoElectiveConfig
+config = AutoElectiveConfig()
 
 _hooks_check_status_code = get_hooks(
     # debug_dump_request,
@@ -34,6 +36,7 @@ _hooks_check_tips = get_hooks(
     check_elective_title,
     check_elective_tips,
 )
+
 
 def _get_headers_with_referer(kwargs, referer=ElectiveURL.HelpController):
     headers = kwargs.pop("headers", {})
@@ -80,10 +83,11 @@ class ElectiveClient(BaseClient):
 
     def sso_login(self, token, **kwargs):
         dummy_cookie = "JSESSIONID=%s!%d" % (
-            ''.join(random.choice(string.digits + string.ascii_letters) for _ in range(52)),
+            ''.join(random.choice(string.digits + string.ascii_letters)
+                    for _ in range(52)),
             random.randint(184960435, 1984960435),
         )
-        headers = kwargs.pop("headers", {}) # no Referer
+        headers = kwargs.pop("headers", {})  # no Referer
         headers["Cookie"] = dummy_cookie  # 必须要指定一个 Cookie 否则报 101 status_code
         r = self._get(
             url=ElectiveURL.SSOLogin,
@@ -100,7 +104,7 @@ class ElectiveClient(BaseClient):
     def sso_login_dual_degree(self, sida, sttp, referer, **kwargs):
         assert len(sida) == 32
         assert sttp in ("bzx", "bfx")
-        headers = kwargs.pop("headers", {}) # no Referer
+        headers = kwargs.pop("headers", {})  # no Referer
         r = self._get(
             url=ElectiveURL.SSOLogin,
             params={
@@ -129,7 +133,7 @@ class ElectiveClient(BaseClient):
             url=ElectiveURL.HelpController,
             hooks=_hooks_check_title,
             **kwargs,
-        ) # 无 Referer
+        )  # 无 Referer
         return r
 
     def get_ShowResults(self, **kwargs):
@@ -148,7 +152,7 @@ class ElectiveClient(BaseClient):
         headers = _get_headers_with_referer(kwargs)
         headers["Cache-Control"] = "max-age=0"
         r = self._get(
-            url=ElectiveURL.SupplyCancel,
+            url=ElectiveURL.SupplyCancel+"?xh=%s" % config.iaaa_id,
             headers=headers,
             hooks=_hooks_check_title,
             **kwargs,
@@ -161,11 +165,10 @@ class ElectiveClient(BaseClient):
         headers = _get_headers_with_referer(kwargs, ElectiveURL.SupplyCancel)
         headers["Cache-Control"] = "max-age=0"
         r = self._get(
-            url=ElectiveURL.Supplement + "?netui_row=%s" % quote("electResultLisGrid;0"),
+            url=ElectiveURL.Supplement,
             params={
-                # "netui_row": "electResultLisGrid;0", # leave this field in url for duplicate key 'netui_row'
-                "netui_row": "electableListGrid;%s" % ( (page - 1) * 20 ),
-                "conflictCourse": "",
+                "netui_pagesize": "electableListGrid;20",
+                "netui_row": "electableListGrid;%s" % ((page - 1) * 20),
             },
             headers=headers,
             hooks=_hooks_check_title,
@@ -187,7 +190,7 @@ class ElectiveClient(BaseClient):
         )
         return r
 
-    def get_Validate(self, captcha, **kwargs):
+    def get_Validate(self, captcha, stuid, **kwargs):
         """ 验证用户输入的验证码 """
         headers = _get_headers_with_referer(kwargs, ElectiveURL.SupplyCancel)
         headers["Accept"] = "application/json, text/javascript, */*; q=0.01"
@@ -197,6 +200,7 @@ class ElectiveClient(BaseClient):
         r = self._post(
             url=ElectiveURL.Validate,
             data={
+                "xh": stuid,
                 "validCode": captcha,
             },
             headers=headers,
