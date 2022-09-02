@@ -596,7 +596,7 @@ def run_elective_loop():
                 # try to elect
 
                 try:
-
+                    success = 0
                     r = elective.get_ElectSupplement(course.href)
 
                 except ElectionRepeatedError as e:
@@ -667,6 +667,7 @@ def run_elective_loop():
                     # 不从此处加入 ignored，而是在下回合根据教学网返回的实际选课结果来决定是否忽略
                     cout.info("%s is ELECTED (OR WAITLISTED)!" % course)
                     send_mail("选课成功: %s" % course)
+                    success = 1
 
                     # --------------------------------------------------------------------------
                     # Issue #25
@@ -693,6 +694,10 @@ def run_elective_loop():
 
                 except Exception as e:
                     raise e  # don't increase error count here
+
+                if success == 0:
+                    send_mail("选课失败: %s" % course)
+                del success
 
         except UserInputException as e:
             cout.error(e)
